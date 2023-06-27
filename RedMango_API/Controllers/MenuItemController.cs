@@ -30,7 +30,7 @@ namespace RedMango_API.Controllers
             return Ok(_response);
         }
 
-        [HttpGet("{id:int}", Name ="GetMenuItem")]
+        [HttpGet("{id:int}",Name = "GetMenuItem")]
         public async Task<IActionResult> GetMenuItem(int id)
         {
             if (id == 0)
@@ -50,12 +50,16 @@ namespace RedMango_API.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult<ApiResponse>> CreateMenuItem([FromForm]MenuItemCreateDTO menuItemCreateDTO) {
+        public async Task<ActionResult<ApiResponse>> CreateMenuItem([FromForm] MenuItemCreateDTO menuItemCreateDTO)
+        {
             try
             {
                 if (ModelState.IsValid)
                 {
-                    if (menuItemCreateDTO.File == null || menuItemCreateDTO.File.Length == 0) { 
+                    if (menuItemCreateDTO.File == null || menuItemCreateDTO.File.Length == 0)
+                    {
+                        _response.StatusCode = HttpStatusCode.BadRequest;
+                        _response.IsSuccess = false;
                         return BadRequest();
                     }
                     string fileName = $"{Guid.NewGuid()}{Path.GetExtension(menuItemCreateDTO.File.FileName)}";
@@ -66,22 +70,27 @@ namespace RedMango_API.Controllers
                         Category = menuItemCreateDTO.Category,
                         SpecialTag = menuItemCreateDTO.SpecialTag,
                         Description = menuItemCreateDTO.Description,
-                        Image =await _blobService.UploadBlob(fileName,SD.SD_Storage_Container,menuItemCreateDTO.File)
+                        Image = await _blobService.UploadBlob(fileName, SD.SD_Storage_Container, menuItemCreateDTO.File)
                     };
                     _db.MenuItems.Add(menuItemToCreate);
                     _db.SaveChanges();
                     _response.Result = menuItemToCreate;
                     _response.StatusCode = HttpStatusCode.Created;
-                    return CreatedAtRoute("GetMenuItem", new{id = menuItemToCreate.Id}, _response);
+                    return CreatedAtRoute("GetMenuItem", new { id = menuItemToCreate.Id }, _response);
+
                 }
-                else { 
-                    _response.IsSuccess= false;
+                else
+                {
+                    _response.IsSuccess = false;
                 }
             }
-            catch (Exception ex) { 
-                _response.IsSuccess= false;
-                _response.ErrorMessages= new List<string>{ex.ToString()};
+            catch (Exception ex)
+            {
+                _response.IsSuccess = false;
+                _response.ErrorMessages
+                     = new List<string>() { ex.ToString() };
             }
+
             return _response;
         }
     }
