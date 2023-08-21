@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using RedMango_API.Data;
 using RedMango_API.Models;
 using System.Net;
+using System.Reflection.Metadata.Ecma335;
 
 namespace RedMango_API.Controllers
 {
@@ -16,6 +17,29 @@ namespace RedMango_API.Controllers
         public ShoppingCartController(ApplicationDbContext db) { 
             _response= new();
             _db = db;
+        }
+        [HttpGet]
+        public async Task<ActionResult<ApiResponse>> GetShoppingCart(string userId) {
+            try {
+                if (string.IsNullOrEmpty(userId)) {
+                    _response.IsSuccess = false;
+                    _response.StatusCode = HttpStatusCode.BadRequest;
+                    return BadRequest(_response);
+                }
+                ShoppingCart shoppingCart= _db.ShoppingCarts.Include(u=>u.CartItems).ThenInclude(u=>u.MenuItem).FirstOrDefault(u=>u.UserId==userId);
+                if (shoppingCart.CartItems != null && shoppingCart.CartItems.Count() > 0) { 
+                    shoppingCart.CartTotal = shoppingCart.CartItems.Sum(u=> u.Quantity*u.MenuItem.Price);
+                }
+                _response.Result= shoppingCart;
+                _response.StatusCode=HttpStatusCode.OK;
+                return Ok(_response);
+            }
+            catch(Exception ex) { 
+                _response.IsSuccess= false;
+                _response.ErrorMessages = new List<string>{ex.ToString()};
+                _response.StatusCode = HttpStatusCode.BadRequest;
+            }
+            return _response;
         }
 
         [HttpPost]
@@ -56,9 +80,41 @@ namespace RedMango_API.Controllers
                 _db.CartItems.Add(newCartItem);
                 _db.SaveChanges();
             }
-            else { 
+            else {
                 // shopping cart exists
-                //CartItem cartIteminDb = _db.CartItems.FirstOrDefault(u=> 
+                CartItem cartIteminCart = shoppingCart.CartItems.FirstOrDefault(u => u.MenuItemId == menuItemId);
+                if (cartIteminCart == null)
+                {
+                    // items does not exists in current cart
+                    CartItem newCartItem = new()
+                    {
+                        MenuItemId = menuItemId,
+                        Quantity = updateQuantityBy,
+                        ShoppingCartId = shoppingCart.Id,
+                        MenuItem = null
+                    };
+                    _db.CartItems.Add(newCartItem);
+                    _db.SaveChanges();
+                }
+                else { 
+                    // item already exists in the cart and we have to update quantity
+                    int newQuantity = cartIteminCart.Quantity +  updateQuantityBy;
+                    if (updateQuantityBy == 0 || newQuantity <= 0)
+                    {
+                        // remove cart item from cart and if it is only the item then remove cart
+                        _db.CartItems.Remove(cartIteminCart);
+                        if (shoppingCart.CartItems.Count == 1)
+                        {
+                            _db.ShoppingCarts.Remove(shoppingCart);
+                        }
+                        _db.SaveChanges();
+
+                    }
+                    else { 
+                        cartIteminCart.Quantity = newQuantity;
+                        _db.SaveChanges();
+                    }
+                }
             }
             return _response;
         }
