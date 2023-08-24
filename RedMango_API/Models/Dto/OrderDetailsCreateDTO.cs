@@ -14,6 +14,6 @@ namespace RedMango_API.Models.Dto
         [Required]
         public string ItemName { get; set; }
         [Required]
-        public string Price { get; set; }
+        public int Price { get; set; }
     }
 }

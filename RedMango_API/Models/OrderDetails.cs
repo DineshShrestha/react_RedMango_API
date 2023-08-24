@@ -19,7 +19,7 @@ namespace RedMango_API.Models
         [Required]
         public string ItemName { get; set; }
         [Required]
-        public string Price { get; set; }
+        public double Price { get; set; }
 
     }
 }

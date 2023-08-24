@@ -11,7 +11,7 @@ namespace RedMango_API.Models.Dto
         [Required]
         public string PickupPhoneNumber{get; set; }
         [Required]
-        public int PickupEmail { get; set; }
+        public string PickupEmail { get; set; }
         public string ApplicationUserId{get; set;}
         public double OrderTotal { get; set; }
 
